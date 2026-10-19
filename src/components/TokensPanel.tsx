@@ -11,7 +11,7 @@ import {
 import { useStudio } from '../context/StudioContext';
 
 export const TokensPanel: React.FC = () => {
-  const { tokens, setActiveTab, setActiveAgentRole, sendAgentPrompt } = useStudio();
+  const { tokens, setActiveAgentRole, sendAgentPrompt, setIsAIBottomBarExpanded } = useStudio();
   const [copied, setCopied] = useState(false);
   const [activeCategory, setActiveCategory] = useState<'all' | 'color' | 'typography' | 'spacing'>('all');
 
@@ -31,7 +31,7 @@ export const TokensPanel: React.FC = () => {
 
   const handleDeepSeekPalette = () => {
     setActiveAgentRole('tokens');
-    setActiveTab('ai');
+    setIsAIBottomBarExpanded(true);
     sendAgentPrompt('قم بتوليد نظام رموز تصميم (Design Tokens) متكامل وعصري بأسلوب داكن احترافي، مع تدرجات الألوان المتناسقة ومقاييس الخطوط.');
   };
 

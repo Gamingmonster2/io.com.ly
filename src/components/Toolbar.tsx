@@ -22,7 +22,7 @@ export const Toolbar: React.FC = () => {
     selectedIds, 
     deleteSelected, 
     duplicateSelected,
-    setActiveTab
+    setIsAIBottomBarExpanded
   } = useStudio();
 
   const handleToolClick = (tool: ToolType) => {
@@ -219,8 +219,8 @@ export const Toolbar: React.FC = () => {
       {/* Bottom AI Quick Action Pill */}
       <div className="w-full px-2">
         <button
-          onClick={() => setActiveTab('ai')}
-          title="طلب وكيل DeepSeek"
+          onClick={() => setIsAIBottomBarExpanded(prev => !prev)}
+          title="فتح شريط وكيل DeepSeek"
           className="w-10 h-10 rounded-xl bg-gradient-to-tr from-studio-accent to-purple-600 text-white flex items-center justify-center shadow-lg shadow-studio-accent/40 hover:scale-105 active:scale-95 transition"
         >
           <Sparkles className="w-4 h-4" />

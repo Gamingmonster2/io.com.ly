@@ -11,37 +11,36 @@ export const DEFAULT_DEEPSEEK_CONFIG: DeepSeekConfig = {
 const SYSTEM_PROMPTS: Record<AIAgentRole, string> = {
   architect: `You are DeepSeek Canvas Architect inside InVision Studio.
 Your role is to understand user UI requirements and generate high-fidelity UI components on the infinite canvas.
-When responding with UI generation, you must return a valid JSON block containing an array of "nodes":
+When responding with UI generation, you must return a valid JSON block containing "type": "ADD_NODES" or "ADD_LIVE_CODE":
 Example:
 \`\`\`json
 {
-  "type": "ADD_NODES",
-  "explanation": "وصف التصميم الذي تم إنشاؤه",
-  "nodes": [
-    {
-      "name": "بطاقة منتج",
-      "type": "card",
-      "x": 100,
-      "y": 100,
-      "width": 320,
-      "height": 420,
-      "fill": "#1E1E24",
-      "stroke": "#33333E",
-      "strokeWidth": 1,
-      "borderRadius": 16,
-      "shadow": "0 8px 30px rgba(0,0,0,0.5)"
-    }
-  ]
+  "type": "ADD_LIVE_CODE",
+  "name": "بطاقة منتج عصرية",
+  "width": 340,
+  "height": 280,
+  "code": "<div class=\\"w-full h-full p-6 bg-gradient-to-br from-[#1E1E28] to-[#14141A] border border-[#33333E] rounded-2xl shadow-2xl flex flex-col justify-between text-white\\"><h3 class=\\"font-bold text-lg text-pink-500\\">عنوان المكون</h3><p class=\\"text-xs text-slate-400\\">وصف المكون مع دعم Tailwind الكامل</p><button class=\\"w-full py-2.5 bg-gradient-to-r from-pink-500 to-rose-600 rounded-xl text-white font-medium shadow-lg hover:scale-105 transition\\">تأكيد الإجراء</button></div>"
 }
 \`\`\`
-Always ensure colors look modern, high contrast, matching dark/sleek studio aesthetic.`,
+Always ensure design is modern, high-contrast, matching sleek studio aesthetic.`,
+
+  code: `You are DeepSeek Live Code & Frontend Engineer inside InVision Studio.
+When the user asks you to write code or create a component, your code WILL BE EXECUTED AND RENDERED DIRECTLY on the InVision Canvas.
+Return a valid JSON block of type "ADD_LIVE_CODE" with clean HTML + Tailwind CSS code so it renders instantly:
+\`\`\`json
+{
+  "type": "ADD_LIVE_CODE",
+  "name": "اسم المكون",
+  "width": 360,
+  "height": 240,
+  "code": "<div class=\\"...\\">...</div>"
+}
+\`\`\`
+Use beautiful Tailwind classes: gradients, shadows, flexbox, border-radius, modern fonts.`,
 
   tokens: `You are DeepSeek Design Token Specialist inside InVision Studio.
 Generate cohesive design systems, semantic color palettes (primary, secondary, background, text, accent) and spacing scales.
 Return tokens in JSON format or clear structured tables.`,
-
-  code: `You are DeepSeek Code & Handoff Engineer.
-Given UI specifications or selected components, write production-ready, clean, modern code in React + Tailwind CSS, SwiftUI, or Jetpack Compose. Explain layout decisions (Flexbox, Grid, Auto-layout).`,
 
   auditor: `You are DeepSeek UX & Accessibility Auditor.
 Inspect component properties, contrast ratios (WCAG AA/AAA), hierarchy, touch targets, and provide actionable design critiques.`
@@ -88,7 +87,7 @@ export async function callDeepSeekAgent(
     const data = await response.json();
     const replyText = data.choices[0].message.content;
 
-    // Parse JSON blocks if architect suggested nodes
+    // Parse JSON blocks if agent suggested code or nodes
     let actionPayload: any = undefined;
     const jsonMatch = replyText.match(/```json\n([\s\S]*?)\n```/);
     if (jsonMatch) {
@@ -105,7 +104,6 @@ export async function callDeepSeekAgent(
     };
   } catch (error: any) {
     console.error('DeepSeek call failed, using fallback simulator:', error);
-    // Graceful fallback with notification of error
     const sim = simulateDeepSeekResponse(role, userPrompt, canvasContext);
     return {
       text: `⚠️ تنبيه الاتصال: (${error.message}).\nتم تفعيل المحاكي الذكي المدمج:\n\n${sim.text}`,
@@ -114,7 +112,7 @@ export async function callDeepSeekAgent(
   }
 }
 
-// Smart simulator for instant offline experience & testing
+// Smart simulator with live rendering payloads that appear immediately on canvas
 function simulateDeepSeekResponse(
   role: AIAgentRole,
   userPrompt: string,
@@ -122,312 +120,142 @@ function simulateDeepSeekResponse(
 ): { text: string; actionPayload?: any } {
   const p = userPrompt.toLowerCase();
 
-  if (role === 'architect' || p.includes('صمم') || p.includes('بطاقة') || p.includes('card') || p.includes('تسجيل') || p.includes('login') || p.includes('dashboard')) {
-    const isLogin = p.includes('تسجيل') || p.includes('دخول') || p.includes('login');
-    const isDashboard = p.includes('لوحة') || p.includes('dashboard') || p.includes('احصاء');
+  // If role is code or prompt contains code/كود or component creation
+  if (role === 'code' || p.includes('كود') || p.includes('زر') || p.includes('بطاقة') || p.includes('تسعير') || p.includes('تسجيل') || p.includes('card') || p.includes('pricing') || p.includes('button') || p.includes('صمم') || p.includes('أنشئ')) {
     
-    const randomOffset = Math.floor(Math.random() * 40);
-    const baseX = 300 + randomOffset;
-    const baseY = 180 + randomOffset;
+    // Check specific requests
+    if (p.includes('تسعير') || p.includes('pricing') || p.includes('باقة')) {
+      const codeHtml = `
+<div class="w-full h-full p-6 bg-gradient-to-br from-[#1C1C26] via-[#161620] to-[#0F0F17] border border-[#FF3366]/40 rounded-2xl shadow-2xl flex flex-col justify-between text-white relative overflow-hidden">
+  <div class="absolute -right-10 -top-10 w-28 h-28 bg-[#FF3366]/20 rounded-full blur-2xl pointer-events-none"></div>
+  <div>
+    <div class="flex items-center justify-between mb-2">
+      <span class="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#FF3366]/20 text-[#FF3366] border border-[#FF3366]/30 uppercase tracking-wider">الأكثر طلباً</span>
+      <span class="text-xs text-slate-400">باقة المحترفين</span>
+    </div>
+    <div class="flex items-baseline gap-1 my-3">
+      <span class="text-3xl font-extrabold text-white tracking-tight">$29</span>
+      <span class="text-xs text-slate-400">/ شهرياً</span>
+    </div>
+    <ul class="space-y-2 text-xs text-slate-300">
+      <li class="flex items-center gap-2"><span class="text-[#00D2FF]">✓</span> وصول غير محدود لوكلاء DeepSeek</li>
+      <li class="flex items-center gap-2"><span class="text-[#00D2FF]">✓</span> تحريك تلقائي 60 FPS غير مقيد</li>
+      <li class="flex items-center gap-2"><span class="text-[#00D2FF]">✓</span> تصدير مباشر لكود React & Tailwind</li>
+    </ul>
+  </div>
+  <button class="w-full py-2.5 mt-4 bg-gradient-to-r from-[#FF3366] to-[#E02956] hover:from-[#E02956] hover:to-[#FF3366] rounded-xl text-white text-xs font-bold shadow-lg shadow-pink-500/25 transition active:scale-95">
+    ترقية الحساب الآن
+  </button>
+</div>`.trim();
 
-    let generatedNodes: SceneNode[] = [];
-    let explanation = '';
-
-    if (isLogin) {
-      explanation = 'تم تصميم شاشة تسجيل دخول احترافية متكاملة بأسلوب داكن وجماليات InVision Studio، مع حقول الإدخال والزر الرئيسي.';
-      generatedNodes = [
-        {
-          id: 'ai-artboard-' + Date.now(),
-          name: 'شاشة تسجيل الدخول',
-          type: 'artboard',
-          x: baseX,
-          y: baseY,
-          width: 380,
-          height: 480,
-          fill: '#18181F',
-          stroke: '#33333E',
-          strokeWidth: 1,
-          borderRadius: 20,
-          shadow: '0 20px 50px rgba(0,0,0,0.6)'
-        },
-        {
-          id: 'ai-title-' + Date.now(),
-          name: 'عنوان الترحيب',
-          type: 'text',
-          x: baseX + 30,
-          y: baseY + 45,
+      return {
+        text: `💻 **وكيل الأكواد (DeepSeek Code Engine):**\n\nتمت كتابة كود Tailwind كامل لبطاقة تسعير احترافية (SaaS Pricing Card).\n⚡ **تم تطبيق الكود مباشرة على مساحة العمل أمامك الآن!**`,
+        actionPayload: {
+          type: 'ADD_LIVE_CODE',
+          name: 'بطاقة تسعير Pro (كود حي)',
           width: 320,
-          height: 40,
-          content: 'تسجيل الدخول إلى حسابك',
-          fontSize: 22,
-          fontWeight: '700',
-          textColor: '#ECECF1',
-          textAlign: 'center'
-        },
-        {
-          id: 'ai-input-email-' + Date.now(),
-          name: 'حقل البريد الإلكتروني',
-          type: 'rectangle',
-          x: baseX + 30,
-          y: baseY + 120,
-          width: 320,
-          height: 50,
-          fill: '#24242C',
-          stroke: '#3D3D4A',
-          strokeWidth: 1,
-          borderRadius: 10,
-        },
-        {
-          id: 'ai-txt-email-' + Date.now(),
-          name: 'نص البريد',
-          type: 'text',
-          x: baseX + 45,
-          y: baseY + 135,
-          width: 250,
-          height: 25,
-          content: 'name@company.com',
-          fontSize: 14,
-          textColor: '#8E8EA0',
-          textAlign: 'left'
-        },
-        {
-          id: 'ai-input-pass-' + Date.now(),
-          name: 'حقل كلمة المرور',
-          type: 'rectangle',
-          x: baseX + 30,
-          y: baseY + 190,
-          width: 320,
-          height: 50,
-          fill: '#24242C',
-          stroke: '#3D3D4A',
-          strokeWidth: 1,
-          borderRadius: 10,
-        },
-        {
-          id: 'ai-txt-pass-' + Date.now(),
-          name: 'نص كلمة المرور',
-          type: 'text',
-          x: baseX + 45,
-          y: baseY + 205,
-          width: 250,
-          height: 25,
-          content: '••••••••••••',
-          fontSize: 14,
-          textColor: '#8E8EA0',
-          textAlign: 'left'
-        },
-        {
-          id: 'ai-btn-submit-' + Date.now(),
-          name: 'زر تسجيل الدخول (Master)',
-          type: 'button',
-          x: baseX + 30,
-          y: baseY + 280,
-          width: 320,
-          height: 52,
-          fill: '#FF3366', // InVision Accent
-          borderRadius: 12,
-          content: 'دخول إلى مساحة العمل',
-          fontSize: 16,
-          fontWeight: '600',
-          textColor: '#FFFFFF',
-          textAlign: 'center',
-          isMasterComponent: true
+          height: 340,
+          code: codeHtml
         }
-      ];
-    } else if (isDashboard) {
-      explanation = 'تم توليد بطاقة مؤشرات أداء (KPI Metric Card) مع عناصر متجهة ورسم بياني رمزي.';
-      generatedNodes = [
-        {
-          id: 'ai-kpi-card-' + Date.now(),
-          name: 'بطاقة إحصاءات الإيرادات',
-          type: 'card',
-          x: baseX,
-          y: baseY,
-          width: 320,
-          height: 200,
-          fill: '#1A1A22',
-          stroke: '#2F2F3D',
-          strokeWidth: 1,
-          borderRadius: 16,
-          shadow: '0 10px 30px rgba(0,0,0,0.4)'
-        },
-        {
-          id: 'ai-kpi-lbl-' + Date.now(),
-          name: 'تسمية المؤشر',
-          type: 'text',
-          x: baseX + 24,
-          y: baseY + 24,
-          width: 200,
-          height: 25,
-          content: 'إجمالي المبيعات النشطة',
-          fontSize: 14,
-          textColor: '#8E8EA0',
-          textAlign: 'right'
-        },
-        {
-          id: 'ai-kpi-val-' + Date.now(),
-          name: 'قيمة المؤشر',
-          type: 'text',
-          x: baseX + 24,
-          y: baseY + 55,
-          width: 220,
-          height: 45,
-          content: '$124,580',
-          fontSize: 32,
-          fontWeight: '700',
-          textColor: '#00D2FF',
-          textAlign: 'right'
-        },
-        {
-          id: 'ai-kpi-badge-' + Date.now(),
-          name: 'شارة النمو +24%',
-          type: 'rectangle',
-          x: baseX + 24,
-          y: baseY + 120,
-          width: 110,
-          height: 32,
-          fill: 'rgba(0, 210, 255, 0.15)',
-          borderRadius: 8,
-          stroke: '#00D2FF',
-          strokeWidth: 1
-        },
-        {
-          id: 'ai-kpi-badge-txt-' + Date.now(),
-          name: 'نص الشارة',
-          type: 'text',
-          x: baseX + 34,
-          y: baseY + 126,
-          width: 90,
-          height: 20,
-          content: '▲ +24.8% هذا الشهر',
-          fontSize: 11,
-          textColor: '#00D2FF',
-          fontWeight: '600',
-          textAlign: 'center'
-        }
-      ];
-    } else {
-      explanation = 'قام وكيل ديب سيك بإنشاء مكون تفاعلي حديث (بطاقة ميزة تفاعلية) بناءً على طلبك.';
-      generatedNodes = [
-        {
-          id: 'ai-feat-card-' + Date.now(),
-          name: 'بطاقة ميزة الذكاء الاصطناعي',
-          type: 'card',
-          x: baseX,
-          y: baseY,
-          width: 340,
-          height: 260,
-          fill: '#1D1D26',
-          stroke: '#FF3366',
-          strokeWidth: 1,
-          borderRadius: 16,
-          shadow: '0 12px 35px rgba(255, 51, 102, 0.15)'
-        },
-        {
-          id: 'ai-feat-title-' + Date.now(),
-          name: 'عنوان البطاقة',
-          type: 'text',
-          x: baseX + 25,
-          y: baseY + 30,
-          width: 290,
-          height: 35,
-          content: 'محرك التحريك التفاعلي الذكي',
-          fontSize: 18,
-          fontWeight: '700',
-          textColor: '#FFFFFF',
-          textAlign: 'right'
-        },
-        {
-          id: 'ai-feat-desc-' + Date.now(),
-          name: 'وصف الميزة',
-          type: 'text',
-          x: baseX + 25,
-          y: baseY + 75,
-          width: 290,
-          height: 60,
-          content: 'تحويل الانتقالات بين الشاشات تلقائياً باستخدام خوارزميات Auto-Animate ومنحنيات Cubic Bezier فائقة النعومة.',
-          fontSize: 13,
-          textColor: '#A0A0B0',
-          textAlign: 'right'
-        },
-        {
-          id: 'ai-feat-btn-' + Date.now(),
-          name: 'زر تفعيل',
-          type: 'button',
-          x: baseX + 25,
-          y: baseY + 175,
-          width: 290,
-          height: 48,
-          fill: '#FF3366',
-          borderRadius: 10,
-          content: 'تجربة التحريك الفوري',
-          fontSize: 15,
-          fontWeight: '600',
-          textColor: '#FFFFFF',
-          textAlign: 'center'
-        }
-      ];
+      };
     }
 
+    if (p.includes('زر') || p.includes('button') || p.includes('نيون')) {
+      const codeHtml = `
+<div class="w-full h-full flex items-center justify-center p-3 bg-[#14141A] rounded-xl border border-white/5">
+  <button class="px-6 py-3 rounded-xl bg-gradient-to-r from-[#00D2FF] via-[#7928CA] to-[#FF3366] text-white text-sm font-bold shadow-[0_0_20px_rgba(0,210,255,0.4)] hover:shadow-[0_0_30px_rgba(255,51,102,0.6)] transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2">
+    <span>⚡ تفعيل محرك الذكاء الاصطناعي</span>
+  </button>
+</div>`.trim();
+
+      return {
+        text: `💻 **وكيل الأكواد (DeepSeek Code Engine):**\n\nتم توليد زر نيون متدرج (Cyberpunk Glowing Button) بتأثيرات ظلال ضوئية حية.\n⚡ **تم إدراجه وتطبيقه مباشرة على اللوحة!**`,
+        actionPayload: {
+          type: 'ADD_LIVE_CODE',
+          name: 'زر نيون تفاعلي (كود حي)',
+          width: 280,
+          height: 90,
+          code: codeHtml
+        }
+      };
+    }
+
+    if (p.includes('تسجيل') || p.includes('login') || p.includes('دخول')) {
+      const codeHtml = `
+<div class="w-full h-full p-6 bg-[#181822] border border-[#2E2E3C] rounded-2xl shadow-2xl flex flex-col justify-between text-white">
+  <div class="text-center mb-2">
+    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#FF3366] to-purple-600 flex items-center justify-center mx-auto mb-2 text-white font-bold text-sm shadow-lg shadow-pink-500/20">IN</div>
+    <h3 class="font-bold text-base text-white">تسجيل الدخول إلى Studio</h3>
+    <p class="text-[11px] text-slate-400">أدخل بياناتك للمتابعة لمساحة العمل</p>
+  </div>
+  <div class="space-y-2.5 my-2">
+    <input type="text" placeholder="name@company.com" class="w-full px-3 py-2 bg-[#22222E] border border-[#333344] focus:border-[#FF3366] rounded-lg text-xs text-white outline-none" />
+    <input type="password" placeholder="••••••••" class="w-full px-3 py-2 bg-[#22222E] border border-[#333344] focus:border-[#FF3366] rounded-lg text-xs text-white outline-none" />
+  </div>
+  <button class="w-full py-2.5 bg-[#FF3366] hover:bg-[#E02956] rounded-xl text-xs font-semibold text-white shadow-lg shadow-pink-500/30 transition active:scale-95">
+    دخول إلى حسابي
+  </button>
+</div>`.trim();
+
+      return {
+        text: `💻 **وكيل الأكواد (DeepSeek Code Engine):**\n\nتمت برمجة شاشة تسجيل دخول متكاملة بكود Tailwind وتنسيقات استوديو InVision.\n⚡ **تم تطبيق الكود مباشرة على مساحة العمل!**`,
+        actionPayload: {
+          type: 'ADD_LIVE_CODE',
+          name: 'واجهة تسجيل دخول (كود حي)',
+          width: 320,
+          height: 360,
+          code: codeHtml
+        }
+      };
+    }
+
+    // Default Component Code
+    const codeHtml = `
+<div class="w-full h-full p-5 bg-gradient-to-br from-[#1C1C26] to-[#121218] border border-[#333344] rounded-2xl shadow-xl flex flex-col justify-between text-white">
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-[#00D2FF]/20 text-[#00D2FF] border border-[#00D2FF]/30 flex items-center justify-center font-bold text-xs">AI</div>
+      <div>
+        <h4 class="font-bold text-xs text-white">عنصر تفاعلي تم توليده بكود حي</h4>
+        <span class="text-[10px] text-slate-400">DeepSeek Live Component</span>
+      </div>
+    </div>
+    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+  </div>
+  <div class="my-3 p-3 rounded-lg bg-[#242432]/60 border border-white/5">
+    <div class="flex justify-between text-xs mb-1">
+      <span class="text-slate-400">معدل التحديث</span>
+      <span class="font-mono text-[#00D2FF] font-semibold">60 FPS</span>
+    </div>
+    <div class="w-full bg-[#181822] h-1.5 rounded-full overflow-hidden">
+      <div class="bg-gradient-to-r from-[#00D2FF] to-[#FF3366] h-full w-[85%] rounded-full"></div>
+    </div>
+  </div>
+  <button class="w-full py-2 bg-gradient-to-r from-[#FF3366] to-purple-600 rounded-lg text-xs font-medium text-white shadow-md hover:opacity-90 transition">
+    تفاعل مع المكون
+  </button>
+</div>`.trim();
+
     return {
-      text: `🤖 **وكيل التصميم (DeepSeek Architect):**\n\n${explanation}\n\n✨ تم تجهيز **${generatedNodes.length}** كائنات متجهة ومواءمتها مع شجرة المشهد (Scene Graph). يمكنك النقر أدناه لتطبيقها على مساحة العمل فوراً!`,
+      text: `💻 **وكيل ديب سيك للكود الحي:**\n\nتمت كتابة الكود البرمجي بالكامل باستخدام HTML و Tailwind CSS.\n⚡ **تم تطبيق النتيجة فوراً على مساحة العمل أمامك!** يمكنك تعديل الكود في أي وقت من لوحة الخصائص وسيتغير في الحال.`,
       actionPayload: {
-        type: 'ADD_NODES',
-        nodes: generatedNodes
+        type: 'ADD_LIVE_CODE',
+        name: 'مكون إحصاءات حي (DeepSeek)',
+        width: 320,
+        height: 220,
+        code: codeHtml
       }
     };
   }
 
   if (role === 'tokens') {
     return {
-      text: `🎨 **وكيل نظم التصميم (DeepSeek Design Tokens):**\n\nتم تحليل لوحة الألوان والرموز الموصى بها لمشروعك السحابي الحديث:\n\n` +
-        `• **اللون الرئيسي (InVision Accent):** \`#FF3366\` (استجابة قوية وتفاعل عالي)\n` +
-        `• **لون التركيز التقني (Cyan Neon):** \`#00D2FF\` (للمؤشرات الحية وحالة الوكلاء)\n` +
-        `• **الخلفية العميقة (Dark Canvas):** \`#141417\` (عزل بصري مريح للعين)\n` +
-        `• **لوحات التحكم (Studio Panels):** \`#1E1E24\` مع حدود \`#33333E\`\n` +
-        `• **الطباعة (Typography Scale):** Inter + Cairo مع أحجام (12px Caption, 14px Body, 18px Subheading, 24px Headline, 32px Display).\n\n💡 جميع الرموز مرتبطة ديناميكياً ويمكن تصديرها كـ JSON أو متغيرات CSS.`
-    };
-  }
-
-  if (role === 'code') {
-    const target = canvasContext?.selectedNodes?.[0];
-    const name = target ? target.name : 'Component';
-    const fill = target?.fill || '#FF3366';
-    const w = target?.width || 200;
-    const h = target?.height || 50;
-
-    return {
-      text: `💻 **وكيل تسليم المطورين (DeepSeek Code Engine):**\n\nتم استخراج هيكل Flexbox ونمط الكود للعنصر المحدد (\`${name}\`):\n\n` +
-`\`\`\`tsx
-import React from 'react';
-
-export const ${name.replace(/\s+/g, '')}: React.FC = () => {
-  return (
-    <div 
-      className="flex items-center justify-center transition-all duration-300 ease-out hover:scale-105 active:scale-95 shadow-lg"
-      style={{
-        width: '${w}px',
-        height: '${h}px',
-        backgroundColor: '${fill}',
-        borderRadius: '12px',
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)'
-      }}
-    >
-      <span className="text-white font-medium text-sm tracking-wide">
-        ${target?.content || name}
-      </span>
-    </div>
-  );
-};
-\`\`\`\n\nكود مهيأ مباشرة للإنتاج مع دعم الانتقالات الانسيابية.`
+      text: `🎨 **وكيل نظم التصميم (DeepSeek Design Tokens):**\n\nتم تحليل وتوليد لوحة الرموز الموصى بها:\n• اللون الأساسي: \`#FF3366\`\n• النيون: \`#00D2FF\`\n• الخلفية: \`#141417\`\n• اللوحات: \`#1E1E24\`\n\nتم ربط الرموز بنجاح مع شجرة المشهد.`
     };
   }
 
   // Auditor Role
   return {
-    text: `🔍 **وكيل التدقيق وسهولة الاستخدام (DeepSeek Auditor):**\n\nتم إجراء تدقيق سريع على مساحة العمل الحالية:\n\n` +
-      `✅ **التباين اللوني (Contrast Ratio):** التباين بين النصوص البيضاء والخلفيات الداكنة يتجاوز 8.5:1 (مطابق لمعيار WCAG AAA).\n` +
-      `✅ **مناطق اللمس (Touch Targets):** جميع الأزرار بأبعاد تفوق الحد الأدنى القياسي (48x48px).\n` +
-      `💡 **توصية تحسين:** يُنصح بضبط مسافات الحشو الداخلية (Padding) على شبكة 8px موحدة للحفاظ على التناسق الإيقاعي للتصميم.`
+    text: `🔍 **وكيل تدقيق سهولة الاستخدام (DeepSeek Auditor):**\n\n✅ التباين اللوني ممتاز (WCAG AAA).\n✅ أبعاد أزرار اللمس مطابقة للمعايير القياسية.\n💡 نصيحة: استخدام شبكة 8px لهوامش الفراغات الداخلية.`
   };
 }

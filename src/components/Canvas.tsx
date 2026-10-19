@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useStudio } from '../context/StudioContext';
 import { SceneNode } from '../types';
+import { ChevronLeft, ChevronRight, Code2, Sparkles } from 'lucide-react';
 
 export const Canvas: React.FC = () => {
   const { 
@@ -13,7 +14,11 @@ export const Canvas: React.FC = () => {
     zoom, 
     setZoom, 
     pan, 
-    setPan 
+    setPan,
+    isLeftSidebarOpen,
+    setIsLeftSidebarOpen,
+    isInspectorOpen,
+    setIsInspectorOpen
   } = useStudio();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -34,11 +39,9 @@ export const Canvas: React.FC = () => {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
 
       if (e.key === ' ' && !isPanning) {
-        // Spacebar panning
         setIsPanning(true);
       }
     };
@@ -57,7 +60,7 @@ export const Canvas: React.FC = () => {
     };
   }, [isPanning]);
 
-  // Mouse wheel zoom
+  // Mouse wheel zoom & pan
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     if (e.ctrlKey || e.metaKey) {
@@ -140,7 +143,6 @@ export const Canvas: React.FC = () => {
     setResizeHandle(null);
   };
 
-  // Node selection and drag start
   const handleNodeMouseDown = (e: React.MouseEvent, node: SceneNode) => {
     if (activeTool === 'pan' || isPanning || e.button === 1) return;
     e.stopPropagation();
@@ -151,7 +153,6 @@ export const Canvas: React.FC = () => {
     setNodeInitialPos({ x: node.x, y: node.y });
   };
 
-  // Resize handle drag start
   const handleResizeHandleMouseDown = (e: React.MouseEvent, node: SceneNode, handle: string) => {
     e.stopPropagation();
     setResizingNodeId(node.id);
@@ -186,6 +187,26 @@ export const Canvas: React.FC = () => {
         }}
       />
 
+      {/* Floating Sidebar Toggle Button: Left Sidebar */}
+      <button
+        onClick={() => setIsLeftSidebarOpen(prev => !prev)}
+        className="absolute top-3 right-3 z-30 p-2 rounded-xl bg-studio-panel/90 hover:bg-studio-panel border border-studio-border text-studio-muted hover:text-white shadow-lg backdrop-blur-md transition flex items-center gap-1.5 text-xs"
+        title={isLeftSidebarOpen ? 'طي القائمة الجانبية' : 'فتح الطبقات ونظم التصميم'}
+      >
+        <span>{isLeftSidebarOpen ? 'إخفاء اللوحة' : 'الطبقات والرموز'}</span>
+        {isLeftSidebarOpen ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+      </button>
+
+      {/* Floating Sidebar Toggle Button: Right Inspector (خصائص العنصر) */}
+      <button
+        onClick={() => setIsInspectorOpen(prev => !prev)}
+        className="absolute top-3 left-3 z-30 p-2 rounded-xl bg-studio-panel/90 hover:bg-studio-panel border border-studio-border text-studio-muted hover:text-white shadow-lg backdrop-blur-md transition flex items-center gap-1.5 text-xs"
+        title={isInspectorOpen ? 'طي خصائص العنصر' : 'إظهار خصائص العنصر'}
+      >
+        {isInspectorOpen ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+        <span>{isInspectorOpen ? 'طي الخصائص' : 'خصائص العنصر'}</span>
+      </button>
+
       {/* World Coordinates Container */}
       <div
         className="absolute top-0 left-0 origin-top-left transition-transform duration-75"
@@ -196,6 +217,7 @@ export const Canvas: React.FC = () => {
         {nodes.map(node => {
           const isSelected = selectedIds.includes(node.id);
           const isArtboard = node.type === 'artboard';
+          const isLiveCode = node.type === 'live_code';
 
           return (
             <div
@@ -203,7 +225,7 @@ export const Canvas: React.FC = () => {
               id={`canvas-node-${node.id}`}
               onMouseDown={(e) => handleNodeMouseDown(e, node)}
               className={`absolute select-none cursor-pointer transition-shadow ${
-                isSelected ? 'ring-2 ring-studio-accent shadow-xl z-20' : 'hover:ring-1 hover:ring-white/20'
+                isSelected ? 'ring-2 ring-studio-accent shadow-2xl z-20' : 'hover:ring-1 hover:ring-white/20'
               }`}
               style={{
                 left: `${node.x}px`,
@@ -220,23 +242,39 @@ export const Canvas: React.FC = () => {
                 zIndex: isArtboard ? 1 : isSelected ? 20 : 5
               }}
             >
-              {/* Artboard or Component Tag Header */}
-              {(isArtboard || node.isMasterComponent || node.transitionKey) && (
+              {/* Header Badge */}
+              <div 
+                className="absolute -top-6 right-0 flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium pointer-events-none select-none"
+                style={{
+                  backgroundColor: isLiveCode 
+                    ? 'rgba(0, 210, 255, 0.2)' 
+                    : isArtboard 
+                    ? 'rgba(30, 30, 36, 0.9)' 
+                    : 'rgba(255, 51, 102, 0.2)',
+                  color: isLiveCode ? '#00D2FF' : isArtboard ? '#8E8EA0' : '#FF3366',
+                  border: '1px solid rgba(255,255,255,0.08)'
+                }}
+              >
+                <span>{node.name}</span>
+                {isLiveCode && (
+                  <span className="text-[9px] px-1 bg-cyan-500/30 text-cyan-300 rounded font-mono flex items-center gap-1">
+                    <Code2 className="w-2.5 h-2.5" />
+                    <span>كود حي</span>
+                  </span>
+                )}
+                {node.isMasterComponent && <span className="text-[9px] px-1 bg-studio-accent text-white rounded">Master</span>}
+                {node.transitionKey && <span className="text-[9px] px-1 bg-cyan-500/20 text-cyan-400 rounded">Auto-Animate</span>}
+              </div>
+
+              {/* LIVE CODE EXECUTION ON CANVAS (HTML + Tailwind) */}
+              {isLiveCode && (
                 <div 
-                  className="absolute -top-6 right-0 flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium pointer-events-none select-none"
-                  style={{
-                    backgroundColor: isArtboard ? 'rgba(30, 30, 36, 0.9)' : 'rgba(255, 51, 102, 0.2)',
-                    color: isArtboard ? '#8E8EA0' : '#FF3366',
-                    border: '1px solid rgba(255,255,255,0.08)'
-                  }}
-                >
-                  <span>{node.name}</span>
-                  {node.isMasterComponent && <span className="text-[9px] px-1 bg-studio-accent text-white rounded">Master</span>}
-                  {node.transitionKey && <span className="text-[9px] px-1 bg-cyan-500/20 text-cyan-400 rounded">Auto-Animate</span>}
-                </div>
+                  className="w-full h-full overflow-hidden pointer-events-auto"
+                  dangerouslySetInnerHTML={{ __html: node.codeSnippet || '' }}
+                />
               )}
 
-              {/* Node Internal Render according to type */}
+              {/* Text Render */}
               {node.type === 'text' && (
                 <div 
                   className="w-full h-full flex items-center px-1 overflow-hidden pointer-events-none"
@@ -252,6 +290,7 @@ export const Canvas: React.FC = () => {
                 </div>
               )}
 
+              {/* Button Render */}
               {node.type === 'button' && (
                 <div className="w-full h-full flex items-center justify-center font-medium pointer-events-none"
                   style={{
@@ -264,13 +303,11 @@ export const Canvas: React.FC = () => {
                 </div>
               )}
 
-              {/* Selection Transform & Resize Handles (8 handles) */}
+              {/* Selection Transform & Resize Handles */}
               {isSelected && (
                 <div className="absolute inset-0 pointer-events-none">
-                  {/* Outer glow line */}
                   <div className="absolute -inset-[2px] border border-studio-accent/70 pointer-events-none" />
 
-                  {/* 8 Resize Handles */}
                   {[
                     { h: 'nw', cls: '-top-1.5 -left-1.5 cursor-nwse-resize' },
                     { h: 'n', cls: '-top-1.5 left-1/2 -translate-x-1/2 cursor-ns-resize' },
@@ -288,7 +325,6 @@ export const Canvas: React.FC = () => {
                     />
                   ))}
 
-                  {/* Size HUD badge */}
                   <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded bg-black/80 text-[10px] font-mono text-white pointer-events-none">
                     {Math.round(node.width)} × {Math.round(node.height)}
                   </div>
@@ -299,13 +335,13 @@ export const Canvas: React.FC = () => {
         })}
       </div>
 
-      {/* Floating Status / Coordinates in Canvas bottom corner */}
-      <div className="absolute bottom-3 right-4 px-3 py-1.5 rounded-lg bg-studio-panel/90 border border-studio-border backdrop-blur-md text-[11px] font-mono text-studio-muted flex items-center gap-3 select-none z-10">
+      {/* Canvas Status info */}
+      <div className="absolute bottom-20 right-4 px-3 py-1.5 rounded-lg bg-studio-panel/80 border border-studio-border backdrop-blur-md text-[10px] font-mono text-studio-muted flex items-center gap-2 select-none z-10 pointer-events-none">
         <span>X: {Math.round(pan.x)} Y: {Math.round(pan.y)}</span>
         <span>•</span>
-        <span>كائنات المتجهات: {nodes.length}</span>
+        <span>العناصر: {nodes.length}</span>
         <span>•</span>
-        <span className="text-studio-accent">InVision Engine: 60 FPS</span>
+        <span className="text-emerald-400">DeepSeek Live Engine</span>
       </div>
     </div>
   );

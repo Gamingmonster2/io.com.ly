@@ -7,12 +7,12 @@ import { LayersPanel } from './components/LayersPanel';
 import { InspectorPanel } from './components/InspectorPanel';
 import { HandoffPanel } from './components/HandoffPanel';
 import { TokensPanel } from './components/TokensPanel';
-import { AIAgentsPanel } from './components/AIAgentsPanel';
+import { BottomAIAgentBar } from './components/BottomAIAgentBar';
 import { AnimationPreviewModal } from './components/AnimationPreviewModal';
 import { DeepSeekSettingsModal } from './components/DeepSeekSettingsModal';
 
 const StudioWorkspace: React.FC = () => {
-  const { activeTab } = useStudio();
+  const { activeTab, isLeftSidebarOpen } = useStudio();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   return (
@@ -20,23 +20,29 @@ const StudioWorkspace: React.FC = () => {
       {/* Top Navbar */}
       <Navbar onOpenSettings={() => setIsSettingsOpen(true)} />
 
-      {/* Main Workspace Body */}
+      {/* Main Spacious Workspace Body */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Far-Left Vector Tools Toolbar */}
+        {/* Leftmost Vector Tools Toolbar */}
         <Toolbar />
 
-        {/* Dynamic Context Panel (AI Agents, Layers, Tokens, or Handoff) */}
-        {activeTab === 'ai' && <AIAgentsPanel onOpenSettings={() => setIsSettingsOpen(true)} />}
-        {activeTab === 'layers' && <LayersPanel />}
-        {activeTab === 'tokens' && <TokensPanel />}
-        {activeTab === 'inspect' && <HandoffPanel />}
+        {/* Collapsible Left Panel (Only shown when toggled open) */}
+        {isLeftSidebarOpen && (
+          <>
+            {activeTab === 'layers' && <LayersPanel />}
+            {activeTab === 'tokens' && <TokensPanel />}
+            {activeTab === 'inspect' && <HandoffPanel />}
+          </>
+        )}
 
-        {/* Center Infinite Vector Canvas */}
+        {/* Huge Full-Width Infinite Canvas */}
         <Canvas />
 
-        {/* Right Properties Inspector */}
+        {/* Collapsible Properties Inspector on the right */}
         <InspectorPanel />
       </div>
+
+      {/* Sleek Bottom AI Agent Bar (Fixed Dock at Bottom) */}
+      <BottomAIAgentBar onOpenSettings={() => setIsSettingsOpen(true)} />
 
       {/* Modals */}
       <AnimationPreviewModal />

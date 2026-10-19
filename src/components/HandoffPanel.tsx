@@ -11,7 +11,7 @@ import {
 import { useStudio } from '../context/StudioContext';
 
 export const HandoffPanel: React.FC = () => {
-  const { nodes, selectedIds, setActiveTab, sendAgentPrompt, setActiveAgentRole } = useStudio();
+  const { nodes, selectedIds, sendAgentPrompt, setActiveAgentRole, setIsAIBottomBarExpanded } = useStudio();
   const [activeLang, setActiveLang] = useState<'css' | 'tailwind' | 'react' | 'swiftui' | 'compose'>('tailwind');
   const [copied, setCopied] = useState(false);
 
@@ -138,8 +138,8 @@ fun ${selectedNode.name.replace(/[^a-zA-Z0-9]/g, '') || 'StudioElement'}() {
 
   const handleDeepSeekEnhance = () => {
     setActiveAgentRole('code');
-    setActiveTab('ai');
-    sendAgentPrompt(`قم بتحسين وتوليد مكون كود متكامل للعنصر: ${selectedNode?.name} مع إضافة حالات التفاعل (Hover/Active) واقتراح معايير الأداء.`);
+    setIsAIBottomBarExpanded(true);
+    sendAgentPrompt(`قم بتوليد وتطبيق كود Tailwind كامل وعصري للعنصر المحدد: ${selectedNode?.name} مع تأثيرات Hover وحركات تفاعلية.`);
   };
 
   return (

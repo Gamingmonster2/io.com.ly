@@ -5,7 +5,8 @@ export type NodeType =
   | 'text'
   | 'button'
   | 'card'
-  | 'input';
+  | 'input'
+  | 'live_code';
 
 export interface SceneNode {
   id: string;
@@ -34,6 +35,9 @@ export interface SceneNode {
   fontWeight?: string | number;
   textColor?: string;
   textAlign?: 'left' | 'center' | 'right';
+  
+  // Live Code Execution (Custom HTML + Tailwind rendered live on canvas)
+  codeSnippet?: string;
   
   // Component / Overrides System
   isMasterComponent?: boolean;

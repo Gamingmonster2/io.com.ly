@@ -14,31 +14,31 @@ export const AI_AGENTS: AIAgent[] = [
   {
     id: 'architect',
     name: 'DeepSeek Canvas Architect',
-    nameAr: 'معمار الواجهات (DeepSeek)',
-    descriptionAr: 'توليد عناصر وشاشات متجهة كاملة مباشرة على مساحة العمل بأسلوب ذكي',
+    nameAr: 'معمار الواجهات المتجهة',
+    descriptionAr: 'توليد عناصر وشاشات متجهة كاملة مباشرة على مساحة العمل',
     avatar: '📐',
     color: '#FF3366'
+  },
+  {
+    id: 'code',
+    name: 'DeepSeek Live Code & Tailwind',
+    nameAr: 'مبرمج الكود الحي (Tailwind)',
+    descriptionAr: 'كتابة وتطبيق كود HTML و Tailwind مباشرة على مساحة العمل ورؤية النتيجة فوراً',
+    avatar: '💻',
+    color: '#00D2FF'
   },
   {
     id: 'tokens',
     name: 'DeepSeek Design Tokens',
     nameAr: 'نظم التصميم والرموز',
-    descriptionAr: 'توليد ومواءمة لوحات الألوان، وقياسات الطباعة والهوامش المتناسقة',
+    descriptionAr: 'توليد ومواءمة لوحات الألوان ومقاييس الخطوط وهوامش الفراغات',
     avatar: '🎨',
     color: '#7928CA'
   },
   {
-    id: 'code',
-    name: 'DeepSeek Code Generator',
-    nameAr: 'تسليم المطورين والأكواد',
-    descriptionAr: 'تحويل أي عنصر أو شاشة إلى أكواد React و Tailwind و SwiftUI بنقرة زر',
-    avatar: '💻',
-    color: '#00D2FF'
-  },
-  {
     id: 'auditor',
     name: 'DeepSeek UX Auditor',
-    nameAr: 'مدقق التباين والوصول',
+    nameAr: 'مدقق التباين وسهولة الاستخدام',
     descriptionAr: 'فحص التباين البصري وتوافق معايير WCAG وتناسق عناصر التصميم',
     avatar: '🔍',
     color: '#10B981'
@@ -54,7 +54,6 @@ const INITIAL_TOKENS: DesignToken[] = [
   { id: 'tok-6', name: 'الحشو الداخلي القياسي', key: 'spacing.base.padding', value: '16px', category: 'spacing' },
 ];
 
-// Initial scene nodes demonstrating the exact InVision Studio Auto-Animate case from PDF Page 4!
 const INITIAL_NODES: SceneNode[] = [
   // Artboard A: Initial State
   {
@@ -128,7 +127,6 @@ const INITIAL_NODES: SceneNode[] = [
     textAlign: 'right',
     parentId: 'artboard-a'
   },
-  // The interactive button in Artboard A (width: 40px, id: btn_submit, opacity: 0.8)
   {
     id: 'btn-submit-a',
     name: 'زر الإرسال (btn_submit)',
@@ -149,7 +147,7 @@ const INITIAL_NODES: SceneNode[] = [
     parentId: 'artboard-a'
   },
 
-  // Artboard B: Animated Final State (Expanded button: 200px, opacity: 1.0, positioned further right)
+  // Artboard B: Animated Final State
   {
     id: 'artboard-b',
     name: 'الشاشة B (الحالة النهائية للتحريك)',
@@ -206,7 +204,6 @@ const INITIAL_NODES: SceneNode[] = [
     strokeWidth: 2,
     parentId: 'artboard-b'
   },
-  // The interactive button in Artboard B (expanded to width: 280px, opacity: 1.0)
   {
     id: 'btn-submit-b',
     name: 'زر الإرسال الممتد (btn_submit)',
@@ -235,21 +232,33 @@ interface StudioContextType {
   zoom: number;
   pan: { x: number; y: number };
   tokens: DesignToken[];
-  activeTab: 'layers' | 'tokens' | 'inspect' | 'ai';
+  activeTab: 'layers' | 'tokens' | 'inspect';
   previewAnimation: boolean;
   deepSeekConfig: DeepSeekConfig;
   activeAgent: AIAgent;
   chatMessages: AgentChatMessage[];
   isAgentGenerating: boolean;
   
+  // Collapsible Layout State
+  isLeftSidebarOpen: boolean;
+  setIsLeftSidebarOpen: (val: boolean | ((prev: boolean) => boolean)) => void;
+  isInspectorOpen: boolean;
+  setIsInspectorOpen: (val: boolean | ((prev: boolean) => boolean)) => void;
+  isAIBottomBarExpanded: boolean;
+  setIsAIBottomBarExpanded: (val: boolean | ((prev: boolean) => boolean)) => void;
+  autoApplyAI: boolean;
+  setAutoApplyAI: (val: boolean) => void;
+  lastAppliedNotification: string | null;
+
   // Actions
   setActiveTool: (tool: ToolType) => void;
-  setActiveTab: (tab: 'layers' | 'tokens' | 'inspect' | 'ai') => void;
+  setActiveTab: (tab: 'layers' | 'tokens' | 'inspect') => void;
   setSelectedIds: (ids: string[]) => void;
   selectNode: (id: string, multiple?: boolean) => void;
   clearSelection: () => void;
   
   addNode: (node: Partial<SceneNode>) => void;
+  addLiveCodeNode: (name: string, code: string, width?: number, height?: number) => void;
   updateNode: (id: string, updates: Partial<SceneNode>) => void;
   deleteSelected: () => void;
   duplicateSelected: () => void;
@@ -283,30 +292,30 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [zoom, setZoom] = useState<number>(1);
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 40, y: 30 });
   const [tokens] = useState<DesignToken[]>(INITIAL_TOKENS);
-  const [activeTab, setActiveTab] = useState<'layers' | 'tokens' | 'inspect' | 'ai'>('ai');
+  const [activeTab, setActiveTab] = useState<'layers' | 'tokens' | 'inspect'>('layers');
   const [previewAnimation, setPreviewAnimation] = useState<boolean>(false);
   
+  // Collapsible Layout States: maximum canvas space by default!
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState<boolean>(false); // Collapsed by default for spacious canvas
+  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(true); // Collapsible
+  const [isAIBottomBarExpanded, setIsAIBottomBarExpanded] = useState<boolean>(false);
+  const [autoApplyAI, setAutoApplyAI] = useState<boolean>(true); // Auto-apply code & designs directly to canvas!
+  const [lastAppliedNotification, setLastAppliedNotification] = useState<string | null>(null);
+
   // Undo/Redo history
   const [historyPast, setHistoryPast] = useState<SceneNode[][]>([]);
   const [historyFuture, setHistoryFuture] = useState<SceneNode[][]>([]);
   
   // DeepSeek AI State
   const [deepSeekConfig, setDeepSeekConfig] = useState<DeepSeekConfig>(DEFAULT_DEEPSEEK_CONFIG);
-  const [activeAgentRole, setActiveAgentRole] = useState<AIAgentRole>('architect');
+  const [activeAgentRole, setActiveAgentRole] = useState<AIAgentRole>('code'); // Start with code agent!
   const [isAgentGenerating, setIsAgentGenerating] = useState<boolean>(false);
   const [chatMessages, setChatMessages] = useState<AgentChatMessage[]>([
     {
       id: 'welcome-1',
       sender: 'system',
-      text: 'مرحباً بك في InVision Studio AI! ✨\nتم تفعيل وحدة وكلاء الذكاء الاصطناعي مع دعم محرك **ديب سيك (DeepSeek)** لتصميم الواجهات، وإدارة نظم التصميم وتوليد الأكواد تلقائياً.',
+      text: 'مرحباً بك! ✨ شريط وكلاء ديب سيك متاح بالأسفل، وأي كود أو تصميم تطلبه سيتم تطبيقه وتنفيذه فوراً وبشكل مرئي على مساحة العمل.',
       timestamp: Date.now()
-    },
-    {
-      id: 'welcome-2',
-      sender: 'agent',
-      agentRole: 'architect',
-      text: 'أنا **وكيل معمار الواجهات (DeepSeek Architect)**.\nيمكنك طلبي لتصميم بطاقات، شاشات، أزرار، أو لوحات تحكم كاملة وسأقوم بإسقاطها فوراً على مساحة العمل المتجهة (Scene Graph). جرب كتابة: "صمم بطاقة إحصاءات مالية" أو "أنشئ واجهة تسجيل دخول".',
-      timestamp: Date.now() + 100
     }
   ]);
 
@@ -350,7 +359,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       id,
       name: nodeData.name || `عنصر ${nodes.length + 1}`,
       type: nodeData.type || 'rectangle',
-      x: nodeData.x || 200,
+      x: nodeData.x || 300,
       y: nodeData.y || 200,
       width: nodeData.width || 160,
       height: nodeData.height || 100,
@@ -363,6 +372,40 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
     setNodes(prev => [...prev, newNode]);
     setSelectedIds([id]);
+    return id;
+  };
+
+  // Add Live Code Node that executes and renders HTML/Tailwind visually on canvas
+  const addLiveCodeNode = (name: string, code: string, width = 340, height = 240) => {
+    pushHistory(nodes);
+    const id = 'live-code-' + Date.now();
+    const spawnX = Math.round(-pan.x + 280 + Math.random() * 40);
+    const spawnY = Math.round(-pan.y + 120 + Math.random() * 40);
+
+    const newNode: SceneNode = {
+      id,
+      name: name || 'مكون كود حي (Tailwind)',
+      type: 'live_code',
+      x: Math.max(40, spawnX),
+      y: Math.max(40, spawnY),
+      width,
+      height,
+      codeSnippet: code,
+      fill: 'transparent',
+      borderRadius: 16,
+      opacity: 1
+    };
+
+    setNodes(prev => [...prev, newNode]);
+    setSelectedIds([id]);
+    showToast(`⚡ تم تطبيق كود "${newNode.name}" مباشرة على مساحة العمل!`);
+  };
+
+  const showToast = (msg: string) => {
+    setLastAppliedNotification(msg);
+    setTimeout(() => {
+      setLastAppliedNotification(null);
+    }, 4000);
   };
 
   const updateNode = (id: string, updates: Partial<SceneNode>) => {
@@ -426,7 +469,7 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setPan({ x: 40, y: 30 });
   };
 
-  // DeepSeek AI prompt handling
+  // DeepSeek AI prompt handling with DIRECT CANVAS APPLICATION
   const sendAgentPrompt = async (prompt: string) => {
     if (!prompt.trim() || isAgentGenerating) return;
 
@@ -460,7 +503,20 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       setChatMessages(prev => [...prev, agentMsg]);
 
-      // If the agent returned canvas nodes automatically, offer to apply or auto-select
+      // DIRECT APPLICATION: If autoApplyAI is active, apply the code/design instantly to canvas!
+      if (autoApplyAI && res.actionPayload) {
+        if (res.actionPayload.type === 'ADD_LIVE_CODE' && res.actionPayload.code) {
+          addLiveCodeNode(
+            res.actionPayload.name || 'مكون كود حي',
+            res.actionPayload.code,
+            res.actionPayload.width || 340,
+            res.actionPayload.height || 240
+          );
+        } else if (res.actionPayload.type === 'ADD_NODES' && res.actionPayload.nodes) {
+          applyAgentNodes(res.actionPayload.nodes);
+          showToast(`✨ تم إدراج ${res.actionPayload.nodes.length} كائنات على مساحة العمل مباشرة!`);
+        }
+      }
     } catch (err: any) {
       setChatMessages(prev => [
         ...prev,
@@ -518,12 +574,22 @@ export const StudioProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         activeAgent,
         chatMessages,
         isAgentGenerating,
+        isLeftSidebarOpen,
+        setIsLeftSidebarOpen,
+        isInspectorOpen,
+        setIsInspectorOpen,
+        isAIBottomBarExpanded,
+        setIsAIBottomBarExpanded,
+        autoApplyAI,
+        setAutoApplyAI,
+        lastAppliedNotification,
         setActiveTool,
         setActiveTab,
         setSelectedIds,
         selectNode,
         clearSelection,
         addNode,
+        addLiveCodeNode,
         updateNode,
         deleteSelected,
         duplicateSelected,
